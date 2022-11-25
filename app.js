@@ -65,8 +65,6 @@ app.post('/impersonate', async function(req, res, next) {
     }
   } = req.body;
   if (!impersonatedAccount && !impersonatedMembership) {
-    // Respond with an error
-    res.status(400).send();
     next({ message: `You need to pass both an account and a membership in the request body` });
     return;
   }
