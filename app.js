@@ -52,13 +52,17 @@ app.post('/impersonate', async function(req, res, next) {
     data: {
       relationships: {
         account: {
-          attributes: {
-            uri: impersonatedAccount,
+          data: {
+            attributes: {
+              uri: impersonatedAccount,
+            }
           }
         },
         membership: {
-          attributes: {
-            uri: impersonatedMembership,
+          data: {
+            attributes: {
+              uri: impersonatedMembership,
+            }
           }
         }
       }
