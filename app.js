@@ -48,28 +48,35 @@ app.get('/who-am-i', async function(req, res) {
 });
 
 app.post('/impersonate', async function(req, res, next) {
-  const {
-    data: {
-      relationships: {
-        account: {
-          data: {
-            attributes: {
-              uri: impersonatedAccount,
+  let impersonatedAccount;
+  let impersonatedMembership;
+  try {
+    ({
+      data: {
+        relationships: {
+          account: {
+            data: {
+              attributes: {
+                uri: impersonatedAccount,
+              }
             }
-          }
-        },
-        membership: {
-          data: {
-            attributes: {
-              uri: impersonatedMembership,
+          },
+          membership: {
+            data: {
+              attributes: {
+                uri: impersonatedMembership,
+              }
             }
           }
         }
       }
+    } = req.body);
+    if (!(impersonatedAccount && impersonatedMembership)) {
+      next({ message: `You need to pass both an account and a membership in the request body` });
+      return;
     }
-  } = req.body;
-  if (!impersonatedAccount && !impersonatedMembership) {
-    next({ message: `You need to pass both an account and a membership in the request body` });
+  } catch (e) {
+    next({ message: `Failed to parse the request body` });
     return;
   }
 
@@ -97,6 +104,7 @@ app.post('/impersonate', async function(req, res, next) {
       next({ message: `You don't have the necessary rights to impersonate other accounts`, status: 403 });
     } else {
       console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate account <${impersonatedAccount}> with membership <${impersonatedMembership}>`)
+      console.error(e);
       next({ message: 'Something went wrong' });
     }
     return;
