@@ -10,7 +10,7 @@ app.get('/', function(_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
 });
 
-app.get('/who-am-i', async function(req, res) {
+app.get('/impersonations/current', async function(req, res) {
   const muSessionId = req.get('mu-session-id');
 
   const {
@@ -33,13 +33,13 @@ app.get('/who-am-i', async function(req, res) {
 
   res.send({
     links: {
-      self: '/who-am-i',
+      self: '/impersonations/current',
     },
     data,
   });
 });
 
-app.post('/impersonate', async function(req, res, next) {
+app.post('/impersonations', async function(req, res, next) {
   let roleId;
   try {
     ({
@@ -87,7 +87,7 @@ app.post('/impersonate', async function(req, res, next) {
     .send();
 });
 
-app.delete('/impersonate', async function(req, res) {
+app.delete('/impersonations/current', async function(req, res) {
   const muSessionId = req.get('mu-session-id');
   try {
     await deleteImpersonatedSession(muSessionId);
