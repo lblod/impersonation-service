@@ -71,14 +71,13 @@ app.post('/impersonations', async function(req, res, next) {
     }
   } catch (e) {
     if (e.httpStatus === 403) {
-      console.warn(`Session <${muSessionId}> could not write data to impersonate role <${role}>`)
-      next({ message: `You don't have the necessary rights to impersonate other accounts`, status: 403 });
+      console.warn(`Session <${muSessionId}> could not write data to impersonate role <${role}>`);
+      return next({ message: `You don't have the necessary rights to impersonate other roles`, status: 403 });
     } else {
-      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate role <${role}>`)
+      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate role <${role}>`);
       console.error(e);
-      next({ message: 'Something went wrong' });
+      return next({ message: 'Something went wrong' });
     }
-    return;
   }
 
   res
@@ -93,10 +92,10 @@ app.delete('/impersonations/current', async function(req, res) {
     await deleteImpersonatedSession(muSessionId);
   } catch (e) {
     if (e.httpStatus === 403) {
-      console.warn(`Session <${muSessionId}> could not remove impersonation data`)
+      console.warn(`Session <${muSessionId}> could not remove impersonation data`);
       return next({ message: `You don't have the necessary rights to stop impersonating other accounts`, status: 403 });
     } else {
-      console.warn(`Something went wrong while session <${muSessionId}> tried to stop impersonating another account`)
+      console.warn(`Something went wrong while session <${muSessionId}> tried to stop impersonating another account`);
       return next({ message: 'Something went wrong' });
     }
   }
