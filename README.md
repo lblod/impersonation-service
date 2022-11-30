@@ -14,7 +14,7 @@ Add rules to the `dispatcher.ex` to dispatch requests to the impersonation servi
 
 ```ex
 match "/impersonations/*path*", @json_service do
-  Proxy.forward conn, path, "http://impersonation/imperosations/"
+  Proxy.forward conn, path, "http://impersonation/impersonations/"
 end
 ```
 
