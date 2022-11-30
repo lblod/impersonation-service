@@ -132,10 +132,7 @@ Fetch the account info linked to the real user of the current session. It will r
 
 #### POST `/impersonate`
 
-As the current session, impersonate the provided account and membership. This endpoint responds with account and membership
-that belong to the session, not the impersonated account and membership that were passed in. This data can be used to keep
-track of the real session "owner".
-
+As the current session, impersonate the provided role. 
 #### Request body
 
 ```json
@@ -143,19 +140,8 @@ track of the real session "owner".
   "data": {
     "type": "sessions",
     "relationships": {
-      "account": {
-        "data": {
-          "type": "accounts",
-          "id": "account-id",
-          "attributes": { "uri": "http://example.com/account-id" }
-        }
-      },
-      "membership": {
-        "data": {
-          "type": "memberships",
-          "id": "membership-id",
-          "attributes": { "uri": "http://example.com/membership-id" }
-        }
+      "role": {
+        "data": { "type": "roles", "id": "role-id"}
       }
     }
   }

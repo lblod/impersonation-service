@@ -4,6 +4,7 @@ import {
   setImpersonatedSession,
   deleteImpersonatedSession,
 } from './lib/session';
+import { getRole } from './lib/role';
 
 app.get('/', function(_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
@@ -39,23 +40,21 @@ app.get('/who-am-i', async function(req, res) {
 });
 
 app.post('/impersonate', async function(req, res, next) {
-  let role;
+  let roleId;
   try {
     ({
       data: {
         relationships: {
           role: {
             data: {
-              attributes: {
-                uri: role,
-              }
+              id: roleId
             }
           }
         }
       }
     } = req.body);
-    if (!role) {
-      return next({ message: `You need to pass a role in the request body` });
+    if (!roleId) {
+      return next({ message: `You need to pass a role ID in the request body` });
     }
   } catch (e) {
     return next({ message: `Failed to parse the request body` });
@@ -64,7 +63,12 @@ app.post('/impersonate', async function(req, res, next) {
   const muSessionId = req.get('mu-session-id');
 
   try {
-    await setImpersonatedSession(muSessionId, role);
+    const { uri: role } = await getRole(roleId);
+    if (role) {
+      await setImpersonatedSession(muSessionId, role);
+    } else {
+      return next({ message: `Could not find a role with id ${roleId}`, status: 404 });
+    }
   } catch (e) {
     if (e.httpStatus === 403) {
       console.warn(`Session <${muSessionId}> could not write data to impersonate role <${role}>`)
