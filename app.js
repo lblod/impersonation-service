@@ -25,7 +25,7 @@ app.get('/impersonations/current', async function(req, res) {
 
   if (roleId) {
     data.relationships ??= {};
-    data.relationships.role = {
+    data.relationships['impersonated-role'] = {
       links: `/roles/${roleId}`,
       data: { type: 'roles', id: roleId },
     }
@@ -45,7 +45,7 @@ app.post('/impersonations', async function(req, res, next) {
     ({
       data: {
         relationships: {
-          role: {
+          'impersonated-role': {
             data: {
               id: roleId
             }

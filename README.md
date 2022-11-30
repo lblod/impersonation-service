@@ -106,7 +106,7 @@ Fetch the impersonated role linked to the user of the current session.
     "type": "sessions",
     "id": "session-id",
     "relationships": {
-      "role": {
+      "impersonated-role": {
         "links": "/role/role-id",
         "data": { "type": "roles", "id": "role-id" }
       }
@@ -128,7 +128,7 @@ As the current session, impersonate the provided role.
   "data": {
     "type": "sessions",
     "relationships": {
-      "role": {
+      "impersonated-role": {
         "data": { "type": "roles", "id": "role-id"}
       }
     }
