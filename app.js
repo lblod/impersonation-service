@@ -19,7 +19,7 @@ app.get('/impersonations/current', async function(req, res) {
   } = await getImpersonatedSession(muSessionId);
 
   const data = {
-    type: 'sessions',
+    type: 'impersonations',
     id: sessionId,
   }
 
