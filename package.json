@@ -1,6 +1,6 @@
 {
   "name": "impersonation-service",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Microservice providing functions to impersonate other users",
   "main": "app.js",
   "directories": {
