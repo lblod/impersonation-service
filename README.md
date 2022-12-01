@@ -32,8 +32,8 @@ defp access_by_role(role_uris) do
     query: "PREFIX org: <http://www.w3.org/ns/org#>
             PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
             SELECT ?role_uri WHERE {
-              OPTIONAL { <SESSION_ID> ext:impersonatedRole ?maybeImpersonatedRole }
               <SESSION_ID> ext:sessionMembership / org:role ?ownRole .
+              OPTIONAL { <SESSION_ID> ext:impersonatedRole ?maybeImpersonatedRole }
               BIND(COALESCE(?maybeImpersonatedRole, ?ownRole) AS ?role_uri)
               VALUES ?role_uri { #{Enum.join(role_uris, " ")} }
             } LIMIT 1"
@@ -103,8 +103,8 @@ Fetch the impersonated role linked to the user of the current session.
 ```json
 {
   "data": {
-    "type": "sessions",
-    "id": "session-id",
+    "type": "impersonations",
+    "id": "impersonation-id",
     "relationships": {
       "impersonated-role": {
         "links": "/role/role-id",
@@ -113,7 +113,7 @@ Fetch the impersonated role linked to the user of the current session.
     }
   },
   "links": {
-    "self": "/who-am-i"
+    "self": "/impersonations/current"
   }
 }
 ```
@@ -126,7 +126,7 @@ As the current session, impersonate the provided role.
 ```json
 {
   "data": {
-    "type": "sessions",
+    "type": "impersonations",
     "relationships": {
       "impersonated-role": {
         "data": { "type": "roles", "id": "role-id"}
