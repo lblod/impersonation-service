@@ -1,10 +1,10 @@
 pipeline:
-  build-and-push:
+  build:
     image: plugins/docker
     settings:
-      repo: "${CI_REPO_OWNER%%-vlaanderen}/${CI_REPO_NAME}"
+      repo: ${CI_REPO}
       tags: latest
-    secrets: [docker_username, docker_password]
+    secrets: [ docker_username, docker_password ]
 when:
+  branch: master
   event: push
-  branch: [master, main]
