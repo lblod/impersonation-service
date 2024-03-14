@@ -4,7 +4,7 @@ import {
   setImpersonatedSession,
   deleteImpersonatedSession,
 } from './lib/session';
-import { getRole } from './lib/role';
+import { getResource } from './lib/resource';
 
 app.get('/', function(_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
@@ -15,20 +15,20 @@ app.get('/impersonations/current', async function(req, res) {
 
   const {
     id: sessionId,
-    roleId,
+    resourceId,
   } = await getImpersonatedSession(muSessionId);
 
   const data = {
     type: 'impersonations',
     id: sessionId,
-  }
+  };
 
-  if (roleId) {
+  if (resourceId) {
     data.relationships ??= {};
-    data.relationships['impersonated-role'] = {
-      links: `/roles/${roleId}`,
-      data: { type: 'roles', id: roleId },
-    }
+    data.relationships['impersonates'] = {
+      links: `/resources/${resourceId}`,
+      data: { type: 'resources', id: resourceId },
+    };
   }
 
   res.send({
@@ -40,21 +40,21 @@ app.get('/impersonations/current', async function(req, res) {
 });
 
 app.post('/impersonations', async function(req, res, next) {
-  let roleId;
+  let resourceId;
   try {
     ({
       data: {
         relationships: {
-          'impersonated-role': {
+          'impersonates': {
             data: {
-              id: roleId
+              id: resourceId
             }
           }
         }
       }
     } = req.body);
-    if (!roleId) {
-      return next({ message: `You need to pass a role ID in the request body` });
+    if (!resourceId) {
+      return next({ message: `You need to pass a resource ID in the request body` });
     }
   } catch (e) {
     return next({ message: `Failed to parse the request body` });
@@ -63,18 +63,18 @@ app.post('/impersonations', async function(req, res, next) {
   const muSessionId = req.get('mu-session-id');
 
   try {
-    const { uri: role } = await getRole(roleId);
-    if (role) {
-      await setImpersonatedSession(muSessionId, role);
+    const { uri: resource } = await getResource(resourceId);
+    if (resource) {
+      await setImpersonatedSession(muSessionId, resource);
     } else {
-      return next({ message: `Could not find a role with id ${roleId}`, status: 404 });
+      return next({ message: `Could not find a resource with id ${resourceId}`, status: 404 });
     }
   } catch (e) {
     if (e.httpStatus === 403) {
-      console.warn(`Session <${muSessionId}> could not write data to impersonate role <${role}>`);
+      console.warn(`Session <${muSessionId}> could not write data to impersonate resource  with id: <${resourceId}>`);
       return next({ message: `You don't have the necessary rights to impersonate other roles`, status: 403 });
     } else {
-      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate role <${role}>`);
+      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate resource  with id: <${resourceId}>`);
       console.error(e);
       return next({ message: 'Something went wrong' });
     }
