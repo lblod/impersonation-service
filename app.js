@@ -15,7 +15,7 @@ app.get('/impersonations/current', async function(req, res) {
 
   const {
     id: sessionId,
-    resourceId,
+    impersonatedResourceId,
   } = await getImpersonatedSession(muSessionId);
 
   const data = {
@@ -23,11 +23,11 @@ app.get('/impersonations/current', async function(req, res) {
     id: sessionId,
   };
 
-  if (resourceId) {
+  if (impersonatedResourceId) {
     data.relationships ??= {};
     data.relationships['impersonates'] = {
-      links: `/resources/${resourceId}`,
-      data: { type: 'resources', id: resourceId },
+      links: `/resources/${impersonatedResourceId}`,
+      data: { type: 'resources', id: impersonatedResourceId },
     };
   }
 
