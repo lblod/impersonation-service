@@ -13,8 +13,8 @@ impersonation:
 Add rules to the `dispatcher.ex` to dispatch requests to the impersonation service.
 
 ```ex
-match "/impersonations/*path*", @json_service do
-  Proxy.forward conn, path, "http://impersonation/impersonations/"
+match "/impersonations/*path", @json_service do
+  forward conn, path, "http://impersonation/impersonations/"
 end
 ```
 
