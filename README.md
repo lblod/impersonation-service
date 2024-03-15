@@ -75,7 +75,8 @@ end
 
 As an `mu-auth` config example closer to `LBLOD` space (`app-digitaal-loket`):
 
-```
+```ex
+
 # [...]
 
   defp access_by_role( group_string ) do
@@ -92,11 +93,12 @@ As an `mu-auth` config example closer to `LBLOD` space (`app-digitaal-loket`):
 
 # [...]
 
-  defp sparql_query_for_access_role( group_string ) do
-    "
+  defp sparql_query_for_access_role(group_string) do
+    """
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+      PREFIX muAccount: <http://mu.semte.ch/vocabularies/account/impersonation/>
 
       SELECT DISTINCT ?session_group ?session_role WHERE {
 
@@ -104,12 +106,16 @@ As an `mu-auth` config example closer to `LBLOD` space (`app-digitaal-loket`):
            \"#{group_string}\"
         }
 
+        VALUES ?session_id {
+           <SESSION_ID>
+        }
+
        {
-          <SESSION_ID> ext:sessionGroup/mu:uuid ?own_group;
+          ?session_id ext:sessionGroup/mu:uuid ?own_group;
                         ext:sessionRole ?session_role.
        } UNION {
 
-         <SESSION_ID> muAccount:impersonates ?maybe_impersonated.
+         ?session_id muAccount:impersonates ?maybe_impersonated.
 
          ?maybe_impersonated a foaf:OnlineAccount;
            ext:sessionRole ?session_role;
@@ -117,11 +123,12 @@ As an `mu-auth` config example closer to `LBLOD` space (`app-digitaal-loket`):
 
          ?person a foaf:Person;
            foaf:account ?maybe_impersonated;
-           foaf:member ?maybe_impersonated_group.
+           foaf:member/mu:uuid ?maybe_impersonated_group.
        }
        BIND(COALESCE(?maybe_impersonated_group, ?own_group) AS ?session_group)
-    }
-    LIMIT 1"
+      }
+      LIMIT 1
+    """
   end
 
 # [...]
