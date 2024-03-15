@@ -63,7 +63,7 @@ app.post('/impersonations', async function(req, res, next) {
   const muSessionId = req.get('mu-session-id');
 
   try {
-    const { uri: resource } = await getResource(resourceId);
+    const { resource } = await getResource(resourceId);
     if (resource) {
       await setImpersonatedSession(muSessionId, resource);
     } else {
