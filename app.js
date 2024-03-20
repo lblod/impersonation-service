@@ -10,7 +10,7 @@ app.get('/', function(_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
 });
 
-app.get('/impersonations/current', async function(req, res) {
+app.get('/impersonations/current', async function (req, res, next) {
   const muSessionId = req.get('mu-session-id');
 
   const {
@@ -18,18 +18,20 @@ app.get('/impersonations/current', async function(req, res) {
     impersonatedResourceId,
   } = await getImpersonatedSession(muSessionId);
 
+  if (!impersonatedResourceId) {
+    return next({ message: 'No active impersonation' });
+  }
+
   const data = {
     type: 'impersonations',
     id: sessionId,
+    relationships: {
+      impersonates: {
+        links: `/resources/${impersonatedResourceId}`,
+        data: { type: 'resources', id: impersonatedResourceId },
+      }
+    }
   };
-
-  if (impersonatedResourceId) {
-    data.relationships ??= {};
-    data.relationships['impersonates'] = {
-      links: `/resources/${impersonatedResourceId}`,
-      data: { type: 'resources', id: impersonatedResourceId },
-    };
-  }
 
   res.send({
     links: {
