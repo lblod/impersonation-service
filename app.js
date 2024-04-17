@@ -6,7 +6,7 @@ import {
 } from './lib/session';
 import { getResource } from './lib/resource';
 
-app.get('/', function(_req, res) {
+app.get('/', function (_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
 });
 
@@ -16,6 +16,9 @@ app.get('/impersonations/current', async function (req, res, next) {
   const {
     id: sessionId,
     impersonatedResourceId,
+    originalResourceId,
+    originalSessionGroupId,
+    originalSessionRoles,
   } = await getImpersonatedSession(muSessionId);
 
   if (!impersonatedResourceId) {
@@ -25,10 +28,19 @@ app.get('/impersonations/current', async function (req, res, next) {
   const data = {
     type: 'impersonations',
     id: sessionId,
+    attributes: {
+      'original-session-roles': originalSessionRoles,
+    },
     relationships: {
       impersonates: {
         links: `/resources/${impersonatedResourceId}`,
         data: { type: 'resources', id: impersonatedResourceId },
+      },
+      'original-resource': {
+        data: { type: 'resources', id: originalResourceId }
+      },
+      'original-session-group': {
+        data: { type: 'session-group', id: originalSessionGroupId }
       }
     }
   };
@@ -41,7 +53,7 @@ app.get('/impersonations/current', async function (req, res, next) {
   });
 });
 
-app.post('/impersonations', async function(req, res, next) {
+app.post('/impersonations', async function (req, res, next) {
   let resourceId;
   try {
     ({
@@ -88,7 +100,7 @@ app.post('/impersonations', async function(req, res, next) {
     .send();
 });
 
-app.delete('/impersonations/current', async function(req, res) {
+app.delete('/impersonations/current', async function (req, res) {
   const muSessionId = req.get('mu-session-id');
   try {
     await deleteImpersonatedSession(muSessionId);
