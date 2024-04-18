@@ -17,6 +17,8 @@ app.get('/impersonations/current', async function (req, res, next) {
     id: sessionId,
     impersonatedResourceId,
     originalResourceId,
+    originalSessionGroupId,
+    originalSessionRoles,
   } = await getImpersonatedSession(muSessionId);
 
   if (!impersonatedResourceId) {
@@ -26,6 +28,9 @@ app.get('/impersonations/current', async function (req, res, next) {
   const data = {
     type: 'impersonations',
     id: sessionId,
+    attributes: {
+      'original-session-roles': originalSessionRoles,
+    },
     relationships: {
       impersonates: {
         links: `/resources/${impersonatedResourceId}`,
@@ -33,6 +38,9 @@ app.get('/impersonations/current', async function (req, res, next) {
       },
       'original-resource': {
         data: { type: 'resources', id: originalResourceId }
+      },
+      'original-session-group': {
+        data: { type: 'session-group', id: originalSessionGroupId }
       }
     }
   };
