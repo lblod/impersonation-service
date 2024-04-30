@@ -75,7 +75,7 @@ end
 ## Reference
 ### Data model
 
-Each logged in user has a session stored in the triplestore. This service works on the assumption that the following the app is using the [acmidm-login-service](https://github.com/lblod/acmidm-login-service) and/or [mock-login-service](https://github.com/lblod/mock-login-service). The session data will be stored as follows:
+Each logged in user has a session stored in the triplestore. This service works on the assumption that the host app is using the [acmidm-login-service](https://github.com/lblod/acmidm-login-service) and/or [mock-login-service](https://github.com/lblod/mock-login-service) services. The session data will be stored as follows:
 
 ```nq
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/session/account> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
