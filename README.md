@@ -67,6 +67,33 @@ def user_groups do
         },
       ]
     },
+    %GroupSpec{
+      name: "org",
+      useage: [:read],
+      access: %AccessByQuery{
+        vars: ["session_group"],
+        # Admin users that are impersonating another account still need access to their organization data
+        query: "PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+                PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+                SELECT DISTINCT ?session_group WHERE {
+                  {
+                    <SESSION_ID> ext:sessionGroup/mu:uuid ?session_group.
+                  } UNION {
+                    <SESSION_ID> ext:originalSessionGroup/mu:uuid ?session_group.
+                  }
+                }" 
+        },
+        graphs: [ %GraphSpec{
+          graph: "http://mu.semte.ch/graphs/organizations/",
+          constraint: %ResourceConstraint{
+            resource_types: [
+              "http://xmlns.com/foaf/0.1/Person",
+              "http://xmlns.com/foaf/0.1/OnlineAccount",
+              "http://www.w3.org/ns/adms#Identifier",
+            ]
+          }
+        } ]
+      },
   ]
 end
 ```
