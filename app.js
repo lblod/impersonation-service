@@ -6,7 +6,7 @@ import {
 } from './lib/session';
 import { getResource } from './lib/resource';
 
-app.get('/', function(_req, res) {
+app.get('/', function (_req, res) {
   res.send({ message: '👋 Hi, this is the impersonation-service 🕵' });
 });
 
@@ -15,20 +15,31 @@ app.get('/impersonations/current', async function (req, res, next) {
 
   const {
     id: sessionId,
-    impersonatedResourceId,
+    impersonatedAccountId,
+    originalAccountId,
+    originalSessionGroupId,
+    originalSessionRoles,
   } = await getImpersonatedSession(muSessionId);
 
-  if (!impersonatedResourceId) {
+  if (!impersonatedAccountId) {
     return next({ message: 'No active impersonation' });
   }
 
   const data = {
     type: 'impersonations',
     id: sessionId,
+    attributes: {
+      'original-session-roles': originalSessionRoles,
+    },
     relationships: {
       impersonates: {
-        links: `/resources/${impersonatedResourceId}`,
-        data: { type: 'resources', id: impersonatedResourceId },
+        data: { type: 'accounts', id: impersonatedAccountId },
+      },
+      'original-account': {
+        data: { type: 'accounts', id: originalAccountId }
+      },
+      'original-session-group': {
+        data: { type: 'session-groups', id: originalSessionGroupId }
       }
     }
   };
@@ -41,22 +52,22 @@ app.get('/impersonations/current', async function (req, res, next) {
   });
 });
 
-app.post('/impersonations', async function(req, res, next) {
-  let resourceId;
+app.post('/impersonations', async function (req, res, next) {
+  let accountId;
   try {
     ({
       data: {
         relationships: {
           'impersonates': {
             data: {
-              id: resourceId
+              id: accountId
             }
           }
         }
       }
     } = req.body);
-    if (!resourceId) {
-      return next({ message: `You need to pass a resource ID in the request body` });
+    if (!accountId) {
+      return next({ message: `You need to pass an account id in the request body` });
     }
   } catch (e) {
     return next({ message: `Failed to parse the request body` });
@@ -65,18 +76,18 @@ app.post('/impersonations', async function(req, res, next) {
   const muSessionId = req.get('mu-session-id');
 
   try {
-    const { uri: resource } = await getResource(resourceId);
-    if (resource) {
-      await setImpersonatedSession(muSessionId, resource);
+    const { uri: accountUri } = await getResource(accountId);
+    if (accountUri) {
+      await setImpersonatedSession(muSessionId, accountUri);
     } else {
-      return next({ message: `Could not find a resource with id ${resourceId}`, status: 404 });
+      return next({ message: `Could not find a account with id ${accountId}`, status: 404 });
     }
   } catch (e) {
     if (e.httpStatus === 403) {
-      console.warn(`Session <${muSessionId}> could not write data to impersonate resource  with id: <${resourceId}>`);
+      console.warn(`Session <${muSessionId}> could not write data to impersonate account  with id: <${accountId}>`);
       return next({ message: `You don't have the necessary rights to impersonate other roles`, status: 403 });
     } else {
-      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate resource  with id: <${resourceId}>`);
+      console.warn(`Something went wrong while session <${muSessionId}> tried to impersonate account with id: <${accountId}>`);
       console.error(e);
       return next({ message: 'Something went wrong' });
     }
@@ -88,7 +99,7 @@ app.post('/impersonations', async function(req, res, next) {
     .send();
 });
 
-app.delete('/impersonations/current', async function(req, res) {
+app.delete('/impersonations/current', async function (req, res) {
   const muSessionId = req.get('mu-session-id');
   try {
     await deleteImpersonatedSession(muSessionId);

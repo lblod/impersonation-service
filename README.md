@@ -1,5 +1,5 @@
 # Impersonation service
-A microservice that allows users to impersonate other resources.
+A microservice that allows users to impersonate other accounts.
 
 ## Tutorials
 ### Add the impersonation-service to a stack
@@ -25,111 +25,30 @@ For example, you could have a regular way to determine access based on membershi
 you will automatically receive the data you'd expect to see if you were logged in as a user with the impersonated role.
 But for some operations, like writing session data, you would want to use the role that's linked to the impersonating user.
 
-```ex
-defp access_by_role(role_uris) do
-  %AccessByQuery{
-    vars: [],
-    query: "PREFIX org: <http://www.w3.org/ns/org#>
-            PREFIX muAccount: <http://mu.semte.ch/vocabularies/account/impersonation/>
-            SELECT ?role_uri WHERE {
-              <SESSION_ID> ext:sessionMembership / org:role ?ownRole .
-              OPTIONAL { <SESSION_ID> muAccount:impersonates ?maybeImpersonatedRole }
-              BIND(COALESCE(?maybeImpersonatedRole, ?ownRole) AS ?role_uri)
-              VALUES ?role_uri { #{Enum.join(role_uris, " ")} }
-            } LIMIT 1"
-  }
-end
-
-defp access_by_own_role(role_uris) do
-  %AccessByQuery{
-    vars: [],
-    query: "PREFIX org: <http://www.w3.org/ns/org#>
-            PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-            SELECT ?role_uri WHERE {
-              <SESSION_ID> ext:sessionMembership / org:role ?role_uri .
-              VALUES ?role_uri { #{Enum.join(role_uris, " ")} }
-            } LIMIT 1"
-  }
-end
-
-# [...]
-
-def user_groups do
-  [
-    %GroupSpec{
-      name: "admin",
-      useage: [:read, :write, :read_for_write],
-      access: access_by_own_role(admin_roles()),
-      graphs: [
-        %GraphSpec{
-          graph: "http://mu.semte.ch/graphs/sessions",
-          constraint: %ResourceFormatConstraint{
-            resource_prefix: "http://mu.semte.ch/sessions/"
-          }
-        },
-      ]
-    },
-  ]
-end
-```
-
-As an `mu-auth` config example closer to `LBLOD` space (`app-digitaal-loket`):
+A `mu-auth` config example close to `LBLOD` space (`app-digitaal-loket`):
 
 ```ex
-
 # [...]
-
-  defp access_by_role( group_string ) do
-    %AccessByQuery{
-      vars: ["session_group","session_role"],
-      query: sparql_query_for_access_role( group_string ) }
-  end
-
-  defp access_by_role_for_single_graph( group_string ) do
-    %AccessByQuery{
-      vars: [],
-      query: sparql_query_for_access_role( group_string ) }
-  end
-
-# [...]
-
-  defp sparql_query_for_access_role(group_string) do
-    """
-      PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-      PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-      PREFIX muAccount: <http://mu.semte.ch/vocabularies/account/impersonation/>
-
-      SELECT DISTINCT ?session_group ?session_role WHERE {
-
+defp is_admin() do
+  %AccessByQuery{
+    vars: [],
+    query: "PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+      SELECT DISTINCT ?session_role WHERE {
         VALUES ?session_role {
-           \"#{group_string}\"
+          \"LoketLB-admin\"
         }
-
         VALUES ?session_id {
-           <SESSION_ID>
+          <SESSION_ID>
         }
-
-       {
-          ?session_id ext:sessionGroup/mu:uuid ?own_group;
-                        ext:sessionRole ?session_role.
-       } UNION {
-
-         ?session_id muAccount:impersonates ?maybe_impersonated.
-
-         ?maybe_impersonated a foaf:OnlineAccount;
-           ext:sessionRole ?session_role;
-           foaf:accountServiceHomepage <https://github.com/lblod/mock-login-service>.
-
-         ?person a foaf:Person;
-           foaf:account ?maybe_impersonated;
-           foaf:member/mu:uuid ?maybe_impersonated_group.
-       }
-       BIND(COALESCE(?maybe_impersonated_group, ?own_group) AS ?session_group)
+        {
+          ?session_id ext:sessionRole ?session_role .
+        } UNION {
+          ?session_id ext:originalSessionRole ?session_role .
+        }
       }
-      LIMIT 1
-    """
-  end
+      LIMIT 1"
+    }
+end
 
 # [...]
 
@@ -138,7 +57,7 @@ def user_groups do
     %GroupSpec{
       name: "sessions-admin",
       useage: [:read, :write, :read_for_write],
-      access: access_by_role_for_single_graph("LoketAdmin"),
+      access: is_admin(),
       graphs: [
         %GraphSpec{
           graph: "http://mu.semte.ch/graphs/sessions",
@@ -148,6 +67,33 @@ def user_groups do
         },
       ]
     },
+    %GroupSpec{
+      name: "org",
+      useage: [:read],
+      access: %AccessByQuery{
+        vars: ["session_group"],
+        # Admin users that are impersonating another account still need access to their organization data
+        query: "PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+                PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+                SELECT DISTINCT ?session_group WHERE {
+                  {
+                    <SESSION_ID> ext:sessionGroup/mu:uuid ?session_group.
+                  } UNION {
+                    <SESSION_ID> ext:originalSessionGroup/mu:uuid ?session_group.
+                  }
+                }" 
+        },
+        graphs: [ %GraphSpec{
+          graph: "http://mu.semte.ch/graphs/organizations/",
+          constraint: %ResourceConstraint{
+            resource_types: [
+              "http://xmlns.com/foaf/0.1/Person",
+              "http://xmlns.com/foaf/0.1/OnlineAccount",
+              "http://www.w3.org/ns/adms#Identifier",
+            ]
+          }
+        } ]
+      },
   ]
 end
 ```
@@ -156,18 +102,26 @@ end
 ## Reference
 ### Data model
 
-Each logged in user has a session stored in the triplestore. This service works on the assumption that sessions are stored as follows:
+Each logged in user has a session stored in the triplestore. This service works on the assumption that the host app is using the [acmidm-login-service](https://github.com/lblod/acmidm-login-service) and/or [mock-login-service](https://github.com/lblod/mock-login-service) services. The session data will be stored as follows:
 
 ```nq
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/session/account> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionGroup> <http://example.com/group-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionRole> "RoleString" <http://mu.semte.ch/graphs/sessions> .
+
 ```
 
-The service works by adding a new triple with the `http://mu.semte.ch/vocabularies/account/impersonation/impersonates` predicate to tell the system which resource a user is impersonating.
-After impersonating a resource a user's session would look like this:
+The service works by copying the original session data to new predicates and replacing them with the impersonated versions afterwards. This way the impersonation is transparent throughout the stack.
+After impersonating an account a user's session would look like this:
 
 ```nq
-<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/session/account> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
-<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/account/impersonation/impersonates> <http://example.com/resource-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/session/account> <http://example.com/impersonated-account-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionGroup> <http://example.com/impersonated-group-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionRole> "RoleString" <http://mu.semte.ch/graphs/sessions> .
+
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalAccount> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalSessionGroup> <http://example.com/group-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalSessionRole> "RoleString" <http://mu.semte.ch/graphs/sessions> .
 ```
 
 ### API
@@ -183,11 +137,19 @@ Fetch the impersonated role linked to the user of the current session.
   "data": {
     "type": "impersonations",
     "id": "impersonation-id",
+    "attributes": {
+      "original-session-roles": ["RoleString"]
+    },
     "relationships": {
       "impersonates": {
-        "links": "/resources/resource-id",
-        "data": { "type": "resources", "id": "resource-id" }
-      }
+        "data": { "type": "accounts", "id": "account-id" }
+      },
+      "original-account": {
+        "data": { "type": "accounts", "id": "account-id" }
+      },
+      "original-session-group": {
+        "data": { "type": "session-groups", "id": "group-id" }
+      },
     }
   },
   "links": {
@@ -198,7 +160,7 @@ Fetch the impersonated role linked to the user of the current session.
 
 #### POST `/impersonations`
 
-As the current session, impersonate the provided role.
+As the current session, impersonate the provided account.
 #### Request body
 
 ```json
@@ -207,7 +169,7 @@ As the current session, impersonate the provided role.
     "type": "impersonations",
     "relationships": {
       "impersonates": {
-        "data": { "type": "resource", "id": "resource-id"}
+        "data": { "type": "accounts", "id": "account-id"}
       }
     }
   }
