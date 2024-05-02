@@ -138,7 +138,7 @@ Fetch the impersonated role linked to the user of the current session.
     "type": "impersonations",
     "id": "impersonation-id",
     "attributes": {
-      'original-session-roles': ['RoleString']
+      "original-session-roles": ["RoleString"]
     },
     "relationships": {
       "impersonates": {
