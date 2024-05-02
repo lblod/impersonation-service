@@ -1,5 +1,5 @@
 # Impersonation service
-A microservice that allows users to impersonate other resources.
+A microservice that allows users to impersonate other accounts.
 
 ## Tutorials
 ### Add the impersonation-service to a stack
@@ -85,14 +85,14 @@ Each logged in user has a session stored in the triplestore. This service works 
 ```
 
 The service works by copying the original session data to new predicates and replacing them with the impersonated versions afterwards. This way the impersonation is transparent throughout the stack.
-After impersonating a resource a user's session would look like this:
+After impersonating an account a user's session would look like this:
 
 ```nq
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/session/account> <http://example.com/impersonated-account-id> <http://mu.semte.ch/graphs/sessions> .
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionGroup> <http://example.com/impersonated-group-id> <http://mu.semte.ch/graphs/sessions> .
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/sessionRole> "RoleString" <http://mu.semte.ch/graphs/sessions> .
 
-<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalResource> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
+<http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalAccount> <http://example.com/account-id> <http://mu.semte.ch/graphs/sessions> .
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalSessionGroup> <http://example.com/group-id> <http://mu.semte.ch/graphs/sessions> .
 <http://mu.semte.ch/sessions/session-id> <http://mu.semte.ch/vocabularies/ext/originalSessionRole> "RoleString" <http://mu.semte.ch/graphs/sessions> .
 ```
@@ -115,13 +115,13 @@ Fetch the impersonated role linked to the user of the current session.
     },
     "relationships": {
       "impersonates": {
-        "data": { "type": "resources", "id": "resource-id" }
+        "data": { "type": "accounts", "id": "account-id" }
       },
-      "original-resource": {
-        "data": { "type": "resources", "id": "resource-id" }
+      "original-account": {
+        "data": { "type": "accounts", "id": "account-id" }
       },
       "original-session-group": {
-        "data": { "type": "session-group", "id": "group-id" }
+        "data": { "type": "session-groups", "id": "group-id" }
       },
     }
   },
@@ -133,7 +133,7 @@ Fetch the impersonated role linked to the user of the current session.
 
 #### POST `/impersonations`
 
-As the current session, impersonate the provided role.
+As the current session, impersonate the provided account.
 #### Request body
 
 ```json
@@ -142,7 +142,7 @@ As the current session, impersonate the provided role.
     "type": "impersonations",
     "relationships": {
       "impersonates": {
-        "data": { "type": "resource", "id": "resource-id"}
+        "data": { "type": "accounts", "id": "account-id"}
       }
     }
   }
